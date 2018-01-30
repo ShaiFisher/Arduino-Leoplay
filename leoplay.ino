@@ -7,7 +7,7 @@
 
 // Pin Definitions
 #define POTENTIOMETER_PIN_SIG	A0
-#define PUSHBUTTON_PIN_2	8
+#define PUSHBUTTON_PIN_2	2
 
 
 
@@ -17,13 +17,7 @@
 Potentiometer potentiometer(POTENTIOMETER_PIN_SIG);
 Button pushButton(PUSHBUTTON_PIN_2);
 
-
-
-// define vars for testing menu
-const int timeout = 10000;       //define timeout of 10 sec
 const int THRESHOLD = 3;
-char menuOption = 0;
-long time0;
 int volume = 0;
 
 // Setup the essentials for your circuit to work. It runs first every time your circuit is powered with electricity.
@@ -36,7 +30,7 @@ void setup()
     Serial.println("start");
     
     pushButton.init();
-
+    volume = potentiometer.read();
     Keyboard.begin();
 }
 
@@ -46,56 +40,38 @@ void loop()
     // handle volume
     int potentiometerVal = potentiometer.read();
     //Serial.print(F("Val: ")); Serial.println(potentiometerVal);
-    if (potentiometerVal == 0) {
-        Serial.println("volume reset");
-        pressCtrlWithKey(KEY_F8);
-    } else if (potentiometerVal == 1023) {
-        Serial.println("volume max");
-        pressCtrlWithKey(KEY_F2);
-    } else if (potentiometerVal > volume + THRESHOLD) {
-        pressCtrlWithKey(KEY_F7);
-        Serial.println("high");
-    } else if (potentiometerVal < volume - THRESHOLD) {
-        pressCtrlWithKey(KEY_F6);
-        Serial.println("low");
+    if (potentiometerVal != volume) {
+      changeVolume(potentiometerVal);
+      delay(300);
     }
-    volume = potentiometerVal;
 
     // check buttons
     bool pushButtonVal = pushButton.read();
-    if (pushButtonVal) {
-        Serial.print(F("push button: ")); Serial.println(pushButtonVal);
-        Keyboard.press(' ');
+    //Serial.print(F("push button: ")); Serial.println(pushButtonVal);
+    if (pushButtonVal == true) {
+        Keyboard.print(' ');
+        delay(300);
     }
     
-    delay(400);
-    /*
-    if(menuOption == '1') {
-    // Potentiometer - Test Code
-    int potentiometerVal = potentiometer.read();
-    Serial.print(F("Val: ")); Serial.println(potentiometerVal);
-
-    }
-    else if(menuOption == '2') {
-    // PushButton - Test Code
-    //Read pushbutton state. 
-    //if button is not pushed function will return LOW (0). if it is pushed function will return HIGH (1).
-    //if debounce is not working properly try changing 'debounceDelay' variable in Button.h
-    //try also pushButton.onPress(), .onRelease() and .onChange() for debounce.
-    bool pushButtonVal = pushButton.read();
-    Serial.print(F("Val: ")); Serial.println(pushButtonVal);
-
-    }
-    
-    
-    
-    if (millis() - time0 > timeout)
-    {
-        menuOption = menu();
-    }
-    */
+    delay(100);
 }
 
+void changeVolume(int newVolume)  {
+  if (newVolume == 0) {
+        Serial.println("volume reset");
+        pressCtrlWithKey(KEY_F8);
+    } else if (newVolume == 1023) {
+        Serial.println("volume max");
+        pressCtrlWithKey(KEY_F2);
+    } else if (newVolume > volume + THRESHOLD) {
+        pressCtrlWithKey(KEY_F7);
+        Serial.println("high");
+    } else if (newVolume < volume - THRESHOLD) {
+        pressCtrlWithKey(KEY_F6);
+        Serial.println("low");
+    }
+    volume = newVolume;
+}
 
 void pressCtrlWithKey(int key)  {
     Keyboard.press(KEY_LEFT_CTRL);
@@ -103,38 +79,6 @@ void pressCtrlWithKey(int key)  {
     delay(100);
     Keyboard.releaseAll();
 }
-
-// Menu function for selecting the components to be tested
-// Follow serial monitor for instrcutions
-char menu()
-{
-
-    Serial.println(F("\nWhich component would you like to test?"));
-    Serial.println(F("(1) Potentiometer"));
-    Serial.println(F("(2) PushButton"));
-    Serial.println(F("(menu) send anything else or press on board reset button\n"));
-    while (!Serial.available());
-
-    // Read data from serial monitor if received
-    while (Serial.available()) 
-    {
-        char c = Serial.read();
-        if (isAlphaNumeric(c)) 
-        {
-            if(c == '1') 
-    			Serial.println(F("Now Testing Potentiometer"));
-    		else if(c == '2') 
-    			Serial.println(F("Now Testing PushButton"));
-            else
-            {
-                Serial.println(F("illegal input!"));
-                return 0;
-            }
-            time0 = millis();
-            return c;
-            }
-        }
-    }
 
 /*******************************************************
 
