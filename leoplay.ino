@@ -2,13 +2,16 @@
 #include "Arduino.h"
 #include "Potentiometer.h"
 #include "Button.h"
+#include "IR.h"
+#include "IRremote.h"
+#include "IRremoteInt.h"
 #include <Keyboard.h>
 
 
 // Pin Definitions
 #define POTENTIOMETER_PIN_SIG	A0
 #define PUSHBUTTON_PIN_2	2
-
+#define IR_PIN_OUT  3
 
 
 // Global variables and defines
@@ -16,6 +19,7 @@
 // object initialization
 Potentiometer potentiometer(POTENTIOMETER_PIN_SIG);
 Button pushButton(PUSHBUTTON_PIN_2);
+IR ir(IR_PIN_OUT);
 
 const int THRESHOLD = 3;
 int volume = 0;
@@ -27,9 +31,10 @@ void setup()
     // Use the Serial Monitor to view printed messages
     Serial.begin(9600);
     while (!Serial) ; // wait for serial port to connect. Needed for native USB
-    Serial.println("start");
+    //Serial.println("start");
     
     pushButton.init();
+    ir.init();
     volume = potentiometer.read();
     Keyboard.begin();
 }
@@ -49,8 +54,24 @@ void loop()
     bool pushButtonVal = pushButton.read();
     //Serial.print(F("push button: ")); Serial.println(pushButtonVal);
     if (pushButtonVal == true) {
-        Keyboard.print(' ');
+        pause();
         delay(300);
+    }
+
+    // check ir
+    long irCode =  ir.detect();
+    if (irCode && irCode != 0xFFFFFFFF) {
+        if (irCode == 0xFFA857) {
+          volumeUp();
+        } else if (irCode == 0xFFE01F) {
+          volumeDown();
+        } else if (irCode == 0xFFC23D) {
+          pause();
+        } else {
+          Serial.print("0x");
+          Serial.println(irCode, HEX);
+        }
+        delay(100);
     }
     
     delay(100);
@@ -64,13 +85,25 @@ void changeVolume(int newVolume)  {
         Serial.println("volume max");
         pressCtrlWithKey(KEY_F2);
     } else if (newVolume > volume + THRESHOLD) {
-        pressCtrlWithKey(KEY_F7);
+        volumeUp();
         Serial.println("high");
     } else if (newVolume < volume - THRESHOLD) {
-        pressCtrlWithKey(KEY_F6);
+        volumeDown();
         Serial.println("low");
     }
     volume = newVolume;
+}
+
+void volumeUp() {
+  pressCtrlWithKey(KEY_F7);
+}
+
+void volumeDown() {
+  pressCtrlWithKey(KEY_F6);
+}
+
+void pause() {
+  Keyboard.print(' ');
 }
 
 void pressCtrlWithKey(int key)  {
